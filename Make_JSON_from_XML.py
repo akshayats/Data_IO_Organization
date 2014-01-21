@@ -296,8 +296,6 @@ output_file converted scenes
 -h, --help for seeing this msg
 """
 
-morse = None
-
 if __name__ == "__main__":
     argv = None
     if argv is None:
@@ -325,7 +323,7 @@ if __name__ == "__main__":
         # pprint(AllFileNames)
 
         # Make Sure to Select Only XML Files From All Files In Folder
-        XmlFileNames   = list();
+        XmlFileNames   = list()
         for CurrFile in AllFileNames:
             if (".xml" in CurrFile):
                 XmlFileNames.append(CurrFile)
@@ -335,10 +333,10 @@ if __name__ == "__main__":
             sys.exit("Error_TSA: No XML files found in current folder! Exiting.")
 
         # Initialize a JSON Data Structure
-        JsonData   = list();
+        JsonData   = list()
 
         # Loop Over All Target XML Files
-        WithFolderName   = list();
+        WithFolderName   = list()
         for CurrXmlFile in XmlFileNames:
         	# Initialize the Dictionaries
             pos    = dict()

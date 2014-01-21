@@ -26,6 +26,12 @@ import warnings
 import numpy as NP
 import math as M
 
+
+import random
+
+
+from pprint import pprint
+
 # DEFINE
 def allDefinedLists():
         global AllPossibleObjectTypes
@@ -297,7 +303,6 @@ output_file converted scenes
 -h, --help for seeing this msg
 """
 
-morse = None
 
 if __name__ == "__main__":
     argv = None
@@ -309,98 +314,190 @@ if __name__ == "__main__":
         except getopt.error as msg:
             raise Usage(msg)
 
-        if ('-h','') in opts or ('--help', '') in opts or len(args) is not 2:
+        if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
             raise Usage(help_msg())
 
-        XmlFolderPath        = args[0]
-        JsonOutputFileName   = args[1]
+        JsonFileName    = args[0]
+        NumOfDataSets   = int(args[1])
+        TrainPercent    = int(args[2])
 
-        # Error Checking in Input Arguments
+        # Error Handling
+        if NumOfDataSets < 1:
+            raise Exception('TSA::Wrong required number of data-sets!')
+        if TrainPercent < 1 or TrainPercent > 100:
+            raise Exception('TSA::Wrong percentage for training data!')
 
-        # Input Arguments Handling
-        # JsonOutputFileName   = "JsonTrialWrite.json"
-        # XmlFolderPath        = "/home/akshaya/technical/tinker-box/database/211013/pcd-files-downsampled"
+        # Open Data File and Load All Data
+        JsonInFileHndl   = open(JsonFileName)
+        Scenes           = json.load(JsonInFileHndl)
+        NumOfScenes      = len(Scenes)
 
-        # Read in & Store All File Names of Target XML Files
-        AllFileNames    = [ f for f in listdir(XmlFolderPath) if isfile(join(XmlFolderPath,f)) ]
-        # pprint(AllFileNames)
+        # Initialise Training and Test Data 
+        TrainData   = list()
+        TestData    = list()
+        Indxs       = list()
 
-        # Make Sure to Select Only XML Files From All Files In Folder
-        XmlFileNames   = list();
-        for CurrFile in AllFileNames:
-            if (".xml" in CurrFile):
-                XmlFileNames.append(CurrFile)
-        # pprint(XmlFileNames)
-        # Exception: No XML Files in Folder
-        if len(XmlFileNames) == 0:
-            sys.exit("Error_TSA: No XML files found in current folder! Exiting.")
+        # Ascertain Number of Scenes According to Percentage
+        NumOfTrainScenes   = int(round(NumOfScenes*TrainPercent/100))
+        print NumOfTrainScenes
 
-        # Initialize a JSON Data Structure
-        JsonData   = list();
+        # Find Indices For Selecting the Training Set, Test Set
+        AllSceneIndxs   = xrange(0, NumOfScenes)
+        TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
+        SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
+        TestIndxs       = list(SetDiff)
 
-        # Loop Over All Target XML Files
-        WithFolderName   = list();
-        for CurrXmlFile in XmlFileNames:
-        	# Initialize the Dictionaries
-            pos    = dict()
-            ori    = dict()
-            bbox   = dict()
-            objT   = dict()
-            # Make Actual Filename To Open
-            InFile        = XmlFolderPath + '/' + CurrXmlFile
-            # Open Current XML File And Load Data
-            XmlFileTree     = ET.parse(InFile)
-            XmlFileRoot     = XmlFileTree.getroot()
+        # Select Those List Entries Corresponding to Indices
+        ScenesNP    = NP.array(Scenes)   # Convert to numpy array
+        TrainData   = list(ScenesNP[TrainIndxs])
+        TestData    = list(ScenesNP[TestIndxs])
 
-            # Get All Scene Details of Currently Opened File
-            CurrXmlData            = XmlData(XmlFileRoot, CurrXmlFile)
-            CurrTableType          = "_OfficeTable_"
-            CurrUserType           = CurrXmlData.get_userType()
-            CurrSceneName          = CurrXmlData.get_sceneName() 
-            CurrSceneObjTypes      = CurrXmlData.get_objectTypes()
-            CurrSceneObjNames      = CurrXmlData.get_objectsInScene()
-            CurrSceneBBoxes        = CurrXmlData.get_bboxVertices()
-            CurrSceneFFaces        = CurrXmlData.get_bboxFrontFaceVertices()
-            CurrSceneQuaternions   = CurrXmlData.get_quaternions()
-            CurrSceneBBoxCenters   = CurrXmlData.get_bboxCenters()
+        # Output Data In Files
+        TrainFileName   = "TrialTrain.json"
+        TestFileName    = "TrialTest.json"
+        with open(TrainFileName,'w') as out_file:
+             out_file.write(json.dumps(TrainData, out_file, indent=2))
+
+        with open(TestFileName,'w') as out_file:
+             out_file.write(json.dumps(TestData, out_file, indent=2))
+
+        # Encrypt Test Data
+        
+        # Include Metadata - Type of (Train, Test) Tuple
+
+
+
+
+
+
+
+
+
+
+
+
+        # Closing Open Files   
+        JsonInFileHndl.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # # Error Checking in Input Arguments
+
+        # # Input Arguments Handling
+        # # JsonOutputFileName   = "JsonTrialWrite.json"
+        # # XmlFolderPath        = "/home/akshaya/technical/tinker-box/database/211013/pcd-files-downsampled"
+
+        # # Read in & Store All File Names of Target XML Files
+        # AllFileNames    = [ f for f in listdir(XmlFolderPath) if isfile(join(XmlFolderPath,f)) ]
+        # # pprint(AllFileNames)
+
+        # # Make Sure to Select Only XML Files From All Files In Folder
+        # XmlFileNames   = list();
+        # for CurrFile in AllFileNames:
+        #     if (".xml" in CurrFile):
+        #         XmlFileNames.append(CurrFile)
+        # # pprint(XmlFileNames)
+        # # Exception: No XML Files in Folder
+        # if len(XmlFileNames) == 0:
+        #     sys.exit("Error_TSA: No XML files found in current folder! Exiting.")
+
+        # # Initialize a JSON Data Structure
+        # JsonData   = list();
+
+        # # Loop Over All Target XML Files
+        # WithFolderName   = list();
+        # for CurrXmlFile in XmlFileNames:
+        # 	# Initialize the Dictionaries
+        #     pos    = dict()
+        #     ori    = dict()
+        #     bbox   = dict()
+        #     objT   = dict()
+        #     # Make Actual Filename To Open
+        #     InFile        = XmlFolderPath + '/' + CurrXmlFile
+        #     # Open Current XML File And Load Data
+        #     XmlFileTree     = ET.parse(InFile)
+        #     XmlFileRoot     = XmlFileTree.getroot()
+
+        #     # Get All Scene Details of Currently Opened File
+        #     CurrXmlData            = XmlData(XmlFileRoot, CurrXmlFile)
+        #     CurrTableType          = "_OfficeTable_"
+        #     CurrUserType           = CurrXmlData.get_userType()
+        #     CurrSceneName          = CurrXmlData.get_sceneName() 
+        #     CurrSceneObjTypes      = CurrXmlData.get_objectTypes()
+        #     CurrSceneObjNames      = CurrXmlData.get_objectsInScene()
+        #     CurrSceneBBoxes        = CurrXmlData.get_bboxVertices()
+        #     CurrSceneFFaces        = CurrXmlData.get_bboxFrontFaceVertices()
+        #     CurrSceneQuaternions   = CurrXmlData.get_quaternions()
+        #     CurrSceneBBoxCenters   = CurrXmlData.get_bboxCenters()
             
-            # Get Time Stamp For File
-            CurrSplitSceneName     = CurrXmlData.get_splitSceneName()
-            # Date
-            yyyy   = int(CurrSplitSceneName[-2][0:2])+2000 # Assuming In This Millenium :D
-            mm     = CurrSplitSceneName[-2][2:4]
-            dd     = CurrSplitSceneName[-2][-2:]
-            # Time
-            if CurrSplitSceneName[-1] == 'Mor':
-                StartTime   = "09:00"
-            elif CurrSplitSceneName[-1] == 'Aft':
-                StartTime   = "14:00"
-            elif CurrSplitSceneName[-1] == 'Eve':
-                StartTime   = "18:00"
-            CurrSceneTime   = str(yyyy) + ":" + mm + ":" + dd +":" + StartTime
+        #     # Get Time Stamp For File
+        #     CurrSplitSceneName     = CurrXmlData.get_splitSceneName()
+        #     # Date
+        #     yyyy   = int(CurrSplitSceneName[-2][0:2])+2000 # Assuming In This Millenium :D
+        #     mm     = CurrSplitSceneName[-2][2:4]
+        #     dd     = CurrSplitSceneName[-2][-2:]
+        #     # Time
+        #     if CurrSplitSceneName[-1] == 'Mor':
+        #         StartTime   = "09:00"
+        #     elif CurrSplitSceneName[-1] == 'Aft':
+        #         StartTime   = "14:00"
+        #     elif CurrSplitSceneName[-1] == 'Eve':
+        #         StartTime   = "18:00"
+        #     CurrSceneTime   = str(yyyy) + ":" + mm + ":" + dd +":" + StartTime
             
-            # Redistribute Contents of XML File Into JSON Data Structure
-            JsonData.append({
-                             'scene_id' : CurrSceneName,
-                             'type': CurrSceneObjTypes,
-                             'objects': CurrSceneObjNames,
-                             'bbox': CurrSceneBBoxes,
-                             'orientation': CurrSceneQuaternions,
-                             'position': CurrSceneBBoxCenters,
-                             'table-type':CurrTableType,
-                             'user-type': CurrUserType,
-                             'date': CurrSceneTime,
-                             'front-faces': CurrSceneFFaces
-                            })
+        #     # Redistribute Contents of XML File Into JSON Data Structure
+        #     JsonData.append({
+        #                      'scene_id' : CurrSceneName,
+        #                      'type': CurrSceneObjTypes,
+        #                      'objects': CurrSceneObjNames,
+        #                      'bbox': CurrSceneBBoxes,
+        #                      'orientation': CurrSceneQuaternions,
+        #                      'position': CurrSceneBBoxCenters,
+        #                      'table-type':CurrTableType,
+        #                      'user-type': CurrUserType,
+        #                      'date': CurrSceneTime,
+        #                      'front-faces': CurrSceneFFaces
+        #                     })
 
-        # End Loop Over XML Files
+        # # End Loop Over XML Files
 
-        # Save JSON Data Structure as JSON File 
-        with open(JsonOutputFileName,'w') as out_file:
-             out_file.write(json.dumps(JsonData, out_file, indent=2))
+        # # Save JSON Data Structure as JSON File 
+        # with open(JsonOutputFileName,'w') as out_file:
+        #      out_file.write(json.dumps(JsonData, out_file, indent=2))
 
-        print "Done. Converted", len(JsonData), "scenes."
+        # print "Done. Converted", len(JsonData), "scenes."
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     except Usage as err:
         print(err.msg)
         print("for help use --help")
