@@ -1,0 +1,72 @@
+
+Hi Akshaya,
+
+Thanks for the update! 
+
+On 17 November 2013 08:08, Akshaya Thippur Sridatta <akshaya@kth.se> wrote:
+
+    1) I have taken a look at the repository you have created and kind of understood what goes where.
+
+ 
+Excellent. Please feel free to re-structure things when necessary.
+ 
+
+    2) I have annotated and saved 30 scenes as we agreed, but they are still in the XML format, yet to be converted to JSON
+
+
+Sounds good! I am really curios to see the new annotations. 
+
+
+    3) I have actually been working on the next goal which is to get all scenes annotated, I have been talking to my university here and they have requested me to present them with a talk and have a student interaction before I can hire the students. (Bureaucracy is slightly lethargic here!)
+
+
+OK, but at least its clear what to do, to get their support.
+ 
+
+
+    4) I checked out the different python libraries to write into JSON files from a data structure, it would be nice if you could tell me which one you are using.
+
+
+The library I was using is called 'json'. In python you've just to put the 'import json' directive in the beginning of the file. The API is quite simple:
+
+1) Loading the scenes in JSON data structure from a file: 
+
+with open(args[0]) as in_file:
+           scenes = json.load(in_file)
+
+2) Saving the data:
+
+with open(args[1],'w') as out_file:
+     out_file.write(json.dumps(conv, out_file, indent=2))
+
+where 'conv' is a JSON data structure.
+
+
+    5) I have not found a nice way to convert the XML files to data in python, yet - I am looking.
+
+
+You can also have a look into the converter I wrote if it helps:
+https://github.com/strands-project/strands_morse/blob/master/src/strand_morse/scene_converter.py
+ 
+
+
+    6) I have to give this talk to my university here tomorrow afternoon - it collides with our meeting time, so we should reschedule. Please let me know when is good for you next. We can even discuss after the WP4 meeting or otherwise.
+
+
+Sure, no problem. Lets do it after the WP4 meeting then. 
+ 
+
+
+    7) What has happened at your end? Have you written any scripts to reformat the JSON files? I did not see it on the QSR repo, do let me know.
+
+
+Yes, indeed. I did the script the week after you left. The script is here:
+https://github.com/strands-project/strands_morse/blob/master/src/strand_morse/scene_converter.py
+
+And the resulting scenes are here:
+https://github.com/strands-project/strands_qsr/blob/master/data/simulation/bham_office_desk_500.json
+
+Maybe you can also add your 30 scenes in the 'data' directory, in a subfolder 'real-world' once they are converted into JSON. The MORSE scenes are in 'simulation'. 
+
+cheers,
+Lars
