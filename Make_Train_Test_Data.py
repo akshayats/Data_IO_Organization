@@ -172,11 +172,15 @@ class BBox():
 class XmlData():
     """ XML Data of a single scene from a single XML-file with getter functions
 """
-    def __init__(self, XmlFileRoot):
+    def __init__(self, XmlFileRoot, CurrXmlFileName):
         self.XmlFileRoot   = XmlFileRoot
         
         # Filename Handling
-        FullFileName     = self.XmlFileRoot[1].text
+        # FullFileName     = self.XmlFileRoot[1].text 
+        # Above^ commented out to avoid inconsistencies in naming. This is caused by the "annotatedFrom"
+        # field in the XML file which contains the address and file name of the PCD file used when annotating.
+        # i.e. Local path name of annotator. e.g. Akhil/home/strands/set1objs/Akshaya_Mor.xml
+        FullFileName     = CurrXmlFileName
         WoExt            = os.path.splitext(FullFileName)[0]
         SplitWoExt       = WoExt.split("/", 200) # There Cannot be More Than 200 Directories
         FileName         = SplitWoExt[-1] # Take Last Part of Full Path - Stripped of Extension Name
@@ -349,7 +353,7 @@ if __name__ == "__main__":
             XmlFileRoot     = XmlFileTree.getroot()
 
             # Get All Scene Details of Currently Opened File
-            CurrXmlData            = XmlData(XmlFileRoot)
+            CurrXmlData            = XmlData(XmlFileRoot, CurrXmlFile)
             CurrTableType          = "_OfficeTable_"
             CurrUserType           = CurrXmlData.get_userType()
             CurrSceneName          = CurrXmlData.get_sceneName() 
@@ -363,9 +367,9 @@ if __name__ == "__main__":
             # Get Time Stamp For File
             CurrSplitSceneName     = CurrXmlData.get_splitSceneName()
             # Date
-            yyyy   = int(CurrSplitSceneName[-2][-2:])+2000 # Assuming In This Millenium :D
+            yyyy   = int(CurrSplitSceneName[-2][0:2])+2000 # Assuming In This Millenium :D
             mm     = CurrSplitSceneName[-2][2:4]
-            dd     = CurrSplitSceneName[-2][0:2]
+            dd     = CurrSplitSceneName[-2][-2:]
             # Time
             if CurrSplitSceneName[-1] == 'Mor':
                 StartTime   = "09:00"
