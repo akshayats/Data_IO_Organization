@@ -96,6 +96,23 @@ def allDefinedLists():
                                     'Petter',
                                    ]
 
+        global Set1Objects
+        Set1Objects              = [
+                                    'Mouse',
+                                    'Keyboard',
+                                    'Monitor',
+                                    'Papers',
+                                    'Book',
+                                    'Notebook',
+                                    'Laptop',
+                                    'Mobile',
+                                    'Mug',
+                                    'Glass',
+                                    'Flask',
+                                    'Bottle',
+                                    'Jug'
+                                   ]
+
 allDefinedLists()
 
 #------------------------------------------------------------------------------
@@ -304,6 +321,7 @@ output_file converted scenes
 """
 
 
+
 if __name__ == "__main__":
     argv = None
     if argv is None:
@@ -316,6 +334,7 @@ if __name__ == "__main__":
 
         if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
             raise Usage(help_msg())
+
 
         JsonFileName    = args[0]
         NumOfDataSets   = int(args[1])
@@ -340,12 +359,17 @@ if __name__ == "__main__":
         # Ascertain Number of Scenes According to Percentage
         NumOfTrainScenes   = int(round(NumOfScenes*TrainPercent/100))
         print NumOfTrainScenes
+        print "Test Scenes = %d" % (NumOfScenes - NumOfTrainScenes)
 
         # Find Indices For Selecting the Training Set, Test Set
         AllSceneIndxs   = xrange(0, NumOfScenes)
         TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
+        TrainIndxs      = [2,4,6,8,10,12,14,16,18,20, 33, 45,51, 5, 7]
         SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
         TestIndxs       = list(SetDiff)
+
+        print TrainIndxs
+        print TestIndxs
 
         # Select Those List Entries Corresponding to Indices
         ScenesNP    = NP.array(Scenes)   # Convert to numpy array
@@ -353,151 +377,54 @@ if __name__ == "__main__":
         TestData    = list(ScenesNP[TestIndxs])
 
         # Output Data In Files
-        TrainFileName   = "TrialTrain.json"
-        TestFileName    = "TrialTest.json"
+        TrainFileName     = "TrainData.json"
+        TestFileName      = "TestData.json"
+        EncTestFileName   = "TestData_Blind.json"
         with open(TrainFileName,'w') as out_file:
              out_file.write(json.dumps(TrainData, out_file, indent=2))
 
         with open(TestFileName,'w') as out_file:
              out_file.write(json.dumps(TestData, out_file, indent=2))
 
-        # Encrypt Test Data
-        
-        # Include Metadata - Type of (Train, Test) Tuple
 
-
-
-
-
-
-
-
-
-
-
-
-        # Closing Open Files   
+        # Actual Encryption
+        EncTestData   = list()
+        for s in range(0,len(TestData)):
+            # Encrypt Test Data
+            ObjectTypeList   = TestData[s]["type"]
+            NumOfObjects     = len(ObjectTypeList)
+            # Make Encrypt and Decrypt Maps
+            EncryptKey   = dict()
+            DecryptKey   = dict()
+            count        = 0;
+            for o, t in ObjectTypeList.iteritems():
+                CurrEncName               = 'Obj'+str(count)
+                EncryptKey[o]             = CurrEncName
+                DecryptKey[CurrEncName]   = str(t)
+                count                    += 1
+            # Remove Unneeded Fields
+            CurrDict   = TestData[s]
+            CurrDict.pop("table-type", None)
+            CurrDict.pop("user-type", None)
+            CurrDict.pop("date", None)
+            CurrDict.pop("objects", None)
+            # Rename Keys According to Encryption Map
+            for k in CurrDict.keys():
+                if k != "scene_id":
+                    for o in CurrDict[k].keys():
+                        ObjectType   = ObjectTypeList[o]
+                        if ObjectType in Set1Objects:
+                            OldKey                = o
+                            NewKey                = EncryptKey[o]
+                            CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
+                        else:
+                            CurrDict[k].pop(o, None)
+            # Store Modified Dictionary
+            EncTestData.append(CurrDict)
+        with open(EncTestFileName,'w') as out_file:
+             out_file.write(json.dumps(EncTestData, out_file, indent=2))
+        # Close Openned Files
         JsonInFileHndl.close()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # # Error Checking in Input Arguments
-
-        # # Input Arguments Handling
-        # # JsonOutputFileName   = "JsonTrialWrite.json"
-        # # XmlFolderPath        = "/home/akshaya/technical/tinker-box/database/211013/pcd-files-downsampled"
-
-        # # Read in & Store All File Names of Target XML Files
-        # AllFileNames    = [ f for f in listdir(XmlFolderPath) if isfile(join(XmlFolderPath,f)) ]
-        # # pprint(AllFileNames)
-
-        # # Make Sure to Select Only XML Files From All Files In Folder
-        # XmlFileNames   = list();
-        # for CurrFile in AllFileNames:
-        #     if (".xml" in CurrFile):
-        #         XmlFileNames.append(CurrFile)
-        # # pprint(XmlFileNames)
-        # # Exception: No XML Files in Folder
-        # if len(XmlFileNames) == 0:
-        #     sys.exit("Error_TSA: No XML files found in current folder! Exiting.")
-
-        # # Initialize a JSON Data Structure
-        # JsonData   = list();
-
-        # # Loop Over All Target XML Files
-        # WithFolderName   = list();
-        # for CurrXmlFile in XmlFileNames:
-        # 	# Initialize the Dictionaries
-        #     pos    = dict()
-        #     ori    = dict()
-        #     bbox   = dict()
-        #     objT   = dict()
-        #     # Make Actual Filename To Open
-        #     InFile        = XmlFolderPath + '/' + CurrXmlFile
-        #     # Open Current XML File And Load Data
-        #     XmlFileTree     = ET.parse(InFile)
-        #     XmlFileRoot     = XmlFileTree.getroot()
-
-        #     # Get All Scene Details of Currently Opened File
-        #     CurrXmlData            = XmlData(XmlFileRoot, CurrXmlFile)
-        #     CurrTableType          = "_OfficeTable_"
-        #     CurrUserType           = CurrXmlData.get_userType()
-        #     CurrSceneName          = CurrXmlData.get_sceneName() 
-        #     CurrSceneObjTypes      = CurrXmlData.get_objectTypes()
-        #     CurrSceneObjNames      = CurrXmlData.get_objectsInScene()
-        #     CurrSceneBBoxes        = CurrXmlData.get_bboxVertices()
-        #     CurrSceneFFaces        = CurrXmlData.get_bboxFrontFaceVertices()
-        #     CurrSceneQuaternions   = CurrXmlData.get_quaternions()
-        #     CurrSceneBBoxCenters   = CurrXmlData.get_bboxCenters()
-            
-        #     # Get Time Stamp For File
-        #     CurrSplitSceneName     = CurrXmlData.get_splitSceneName()
-        #     # Date
-        #     yyyy   = int(CurrSplitSceneName[-2][0:2])+2000 # Assuming In This Millenium :D
-        #     mm     = CurrSplitSceneName[-2][2:4]
-        #     dd     = CurrSplitSceneName[-2][-2:]
-        #     # Time
-        #     if CurrSplitSceneName[-1] == 'Mor':
-        #         StartTime   = "09:00"
-        #     elif CurrSplitSceneName[-1] == 'Aft':
-        #         StartTime   = "14:00"
-        #     elif CurrSplitSceneName[-1] == 'Eve':
-        #         StartTime   = "18:00"
-        #     CurrSceneTime   = str(yyyy) + ":" + mm + ":" + dd +":" + StartTime
-            
-        #     # Redistribute Contents of XML File Into JSON Data Structure
-        #     JsonData.append({
-        #                      'scene_id' : CurrSceneName,
-        #                      'type': CurrSceneObjTypes,
-        #                      'objects': CurrSceneObjNames,
-        #                      'bbox': CurrSceneBBoxes,
-        #                      'orientation': CurrSceneQuaternions,
-        #                      'position': CurrSceneBBoxCenters,
-        #                      'table-type':CurrTableType,
-        #                      'user-type': CurrUserType,
-        #                      'date': CurrSceneTime,
-        #                      'front-faces': CurrSceneFFaces
-        #                     })
-
-        # # End Loop Over XML Files
-
-        # # Save JSON Data Structure as JSON File 
-        # with open(JsonOutputFileName,'w') as out_file:
-        #      out_file.write(json.dumps(JsonData, out_file, indent=2))
-
-        # print "Done. Converted", len(JsonData), "scenes."
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     except Usage as err:
         print(err.msg)
         print("for help use --help")
