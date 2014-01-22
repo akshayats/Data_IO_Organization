@@ -17,85 +17,24 @@ import errno
 import getopt
 import json
 import sys
-import os
 from os import listdir
 from os.path import isfile, join
 import os.path, time
 import xml.etree.ElementTree as ET
 import warnings
-import numpy as NP
 import math as M
 
 
+import numpy as NP
+import datetime
 import random
+import os
 
 
 from pprint import pprint
 
 # DEFINE
 def allDefinedLists():
-        global AllPossibleObjectTypes
-        AllPossibleObjectTypes   = ['Mouse',
-                                    'Keyboard',
-                                    'Monitor',
-                                    'Headphones',
-                                    'Laptop',
-
-                                    'Pen',
-                                    'Pencil',
-                                    'Book',
-                                    'Papers',
-                                    'PenStand',
-                                    'Marker',
-                                    'Highlighter',
-                                    'Rubber',
-                                    'Notebook',
-                                    'Folder',
-
-                                    'Lamp',
-                                    'Telephone',
-                                    'Mobile',
-                                    'Keys',
-                                    'SoftFish',
-                                    
-                                    'Glass',
-                                    'Mug',
-                                    'Jug',
-                                    'Flask',
-                                    'Bottle',
-                                    ]
-        global StudentList
-        StudentList              = [
-                                    'Akshaya',
-                                    'Ali',
-                                    'Francisco',
-                                    'Hossein',
-                                    'Kaiyu',
-                                    'Magnus',
-                                    'Michele',
-                                    'Miro',
-                                    'Nils',
-                                    'Puren',
-                                    'Rares',
-                                    'Rasmus',
-                                    'Yuquan'
-                                   ]
-        global ResearcherList
-        ResearcherList           = [
-                                    'David',
-                                    'Florian',
-                                    'Marina',
-                                    'Oscar',
-                                    'Petter',
-                                    'Yasemin',
-                                   ]
-        global ProfessorList
-        ProfessorList            = [
-                                    'Carl',
-                                    'Hedvig',
-                                    'Petter',
-                                   ]
-
         global Set1Objects
         Set1Objects              = [
                                     'Mouse',
@@ -115,196 +54,6 @@ def allDefinedLists():
 
 allDefinedLists()
 
-#------------------------------------------------------------------------------
-class BBox():
-    def __init__(self, length, width, height, x, y, z, pitch, roll, yaw):
-        # Raw Bounding Box at (0,0,0) of Table and No Rotations of Appropraite Size
-        self.RawBBox    = [
-                        [0,        0, 0],              # Lower Left
-                        [0+length, 0, 0],              # Lower Right
-                        [0+length, 0, 0+height],       # Upper Right
-                        [0,        0, 0+height],       # Upper Left
-                        [0,        0+width, 0],        # Lower Left
-                        [0+length, 0+width, 0],        # Lower Right
-                        [0+length, 0+width, 0+height], # Upper Right
-                        [0,        0+width, 0+height] # Upper Left
-                       ]
-        self.RawBBox   = NP.matrix(self.RawBBox)
-
-        # Convert to Radians
-        self.P        = float(pitch)*M.pi/180
-        self.R        = float(roll)*M.pi/180
-        self.Y        = float(yaw)*M.pi/180
-        # Rotation Matrix for Brian-Tait Angles
-        self.RotMat   = [
-                         [M.cos(self.Y)*M.cos(self.P),   M.cos(self.Y)*M.sin(self.P)*M.sin(self.R)-M.sin(self.Y)*M.cos(self.R),   M.sin(self.Y)*M.sin(self.R)+M.cos(self.Y)*M.sin(self.P)*M.cos(self.R)],
-                         [M.sin(self.Y)*M.cos(self.P),   M.cos(self.Y)*M.cos(self.R)+M.sin(self.Y)*M.sin(self.P)*M.sin(self.R),   M.sin(self.Y)*M.sin(self.P)*M.cos(self.R)-M.cos(self.Y)*M.sin(self.R)],
-                         [-M.sin(self.P),                M.cos(self.P)*M.sin(self.R),                                             M.cos(self.P)*M.cos(self.R)                                          ]
-                        ]
-        self.RotMat   = NP.matrix(self.RotMat)
-        # Affine Transform Matrix
-        OriginShift   = [[x], [y], [z]]
-        self.AffMat   = NP.hstack([self.RotMat, OriginShift])
-        AffineMaker   = [0,0,0,1]
-        self.AffMat   = NP.vstack([self.AffMat, AffineMaker])
-
-        # Make Affine Transformation & Get Affine Transformed Bounding Box
-        TempBBox           = NP.vstack((self.RawBBox.T, NP.ones((1, self.RawBBox.shape[0]))))
-        TempMat            = self.AffMat*TempBBox
-        self.BoundingBox   = TempMat[0:3,:].T
-
-        # Find Front Face
-        self.FrontFace   = self.BoundingBox[0:4, :]
-
-        # Make Quaternion out of Brian-Tait (Euler) Angles
-        # psi = gamma = yaw
-        # theta = alpha = pitch
-        # phi = beta = roll
-        # Wikilink: http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-        # w   = Quaternion(1);
-        # x   = Quaternion(2);
-        # y   = Quaternion(3);
-        # z   = Quaternion(4);
-        # Rotate Using Following Matrix:
-        # QuatRotationMat   = [ 1-2*y^2-2*z^2, 2*x*y-2*w*z, 2*x*z+2*w*y;
-        #                       2*x*y+2*w*z,   1-2*x^2-2*z^2, 2*y*z-2*w*x;
-        #                       2*x*z-2*w*y,   2*y*z+2*w*x,   1-2*x^2-2*y^2];
-        # RotatedVertices(3xN)   = QuatRotationMat(3x3)*OriginalVertices(3xN)
-
-        sp   = M.sin(self.P/2)
-        cp   = M.cos(self.P/2)
-        sr   = M.sin(self.R/2)
-        cr   = M.cos(self.R/2)
-        sy   = M.sin(self.Y/2)
-        cy   = M.cos(self.Y/2)
-
-        self.Quaternion   = [
-                                cr*cp*cy + sr*sp*sy,
-                                sr*cp*cy - cr*sp*sy,
-                                cr*sp*cy + sr*cp*sy,
-                                cr*cp*sy - sr*sp*cy
-                            ]
-
-        # Find Geometrical Center of Bounding Box
-        ColSums       = self.BoundingBox.sum(axis = 0)
-        self.Center   = ColSums/8
-
-#------------------------------------------------------------------------------
-
-# Helper Classes
-class XmlData():
-    """ XML Data of a single scene from a single XML-file with getter functions
-"""
-    def __init__(self, XmlFileRoot, CurrXmlFileName):
-        self.XmlFileRoot   = XmlFileRoot
-        
-        # Filename Handling
-        # FullFileName     = self.XmlFileRoot[1].text 
-        # Above^ commented out to avoid inconsistencies in naming. This is caused by the "annotatedFrom"
-        # field in the XML file which contains the address and file name of the PCD file used when annotating.
-        # i.e. Local path name of annotator. e.g. Akhil/home/strands/set1objs/Akshaya_Mor.xml
-        FullFileName     = CurrXmlFileName
-        WoExt            = os.path.splitext(FullFileName)[0]
-        SplitWoExt       = WoExt.split("/", 200) # There Cannot be More Than 200 Directories
-        FileName         = SplitWoExt[-1] # Take Last Part of Full Path - Stripped of Extension Name
-        SplitFileName    = FileName.split("_seg",20) # 20 is Another Large Number
-        self.SceneName   = SplitFileName[0]
-
-        # Find Out Type of User
-        self.SplitSceneName   = self.SceneName.split("_",20)
-        UserName              = self.SplitSceneName[0]
-        if UserName in StudentList:
-            self.UserType   = "_Student_"
-        elif UserName in ProfessorList:
-            self.UserType   = "_Professor_"
-        elif UserName in ResearcherList:
-            self.UserType   = "_Researcher_"
-        else:
-            self.UserType   = "_Unknown_"
-
-        # Find Number of Objects
-        NumOfObjects             = int(self.XmlFileRoot[3][0].text)
-        # Initialize Containers
-        self.AllObjectTypes      = dict() # Container for Object-Type Strings
-        self.AllObjectsInScene   = list() # Container for (Object,Object-Type) String Tuples
-        self.AllBoundingBoxes    = dict() # Container for Bounding Box 8 Vertices - Arrays
-        self.AllFrontFaces       = dict() # Container for Bounding Box Front Faces 4 Vertices - Arrays
-        self.AllQuaternions      = dict() # Container for BBox Orientations = Quaternions 
-        self.AllCenters          = dict() # Container for BBox Geometrical Center Points 
-        # Loop Over All Objects
-        for ObjNum in range(1, NumOfObjects+1):   # 0th Entry is Number Of Objects
-
-            # ACCESSING OBJECT NAME DETAILS
-            # ------------------------------
-            CurrObjName         = self.XmlFileRoot[3][ObjNum][0].text
-            # Remove Upper Case
-            CurrObjName_lc      = CurrObjName.lower();
-            # Remove Underscores From Multiple Instances
-            CurrObjName_split   = CurrObjName.split("_",10)
-            CurrObjType         = CurrObjName_split[0]
-            # Check If New Type Of Object - Give Warnings
-            if not CurrObjType in AllPossibleObjectTypes:
-                print "TSA: New object type found! -   " + CurrObjType
-
-            # ACCESSING OBJECT DIMENSION DETAILS
-            # ----------------------------------
-            # Get Box Dimensions
-            CurrObjLength       = float(self.XmlFileRoot[3][ObjNum][3][0].text)
-            CurrObjWidth        = float(self.XmlFileRoot[3][ObjNum][3][1].text)
-            CurrObjHeight       = float(self.XmlFileRoot[3][ObjNum][3][2].text)
-            # Get Box Origin Position wrt Table Origin
-            CurrObj_X           = float(self.XmlFileRoot[3][ObjNum][2][0].text)
-            CurrObj_Y           = float(self.XmlFileRoot[3][ObjNum][2][1].text)
-            CurrObj_Z           = float(self.XmlFileRoot[3][ObjNum][2][2].text)
-            # Get Box Orientations
-            CurrObj_Pitch       = float(self.XmlFileRoot[3][ObjNum][2][3].text)
-            CurrObj_Roll        = float(self.XmlFileRoot[3][ObjNum][2][4].text)
-            CurrObj_Yaw         = float(self.XmlFileRoot[3][ObjNum][2][5].text)
-
-            # MAKE BOUNDING BOX CLASS-OBJECT
-            # ------------------------------
-            # Make a Raw Bounding Box at Origin of Table and No Orientations
-            CurrObjBBox         = BBox(CurrObjLength,CurrObjWidth, CurrObjHeight, CurrObj_X, CurrObj_Y, CurrObj_Z, CurrObj_Pitch, CurrObj_Roll, CurrObj_Yaw)
-            # APPEND AND STORE DATA TO BE ACCESSED
-            # ------------------------------------
-            # Add Entries to Dictionaries
-            self.AllObjectTypes[CurrObjName_lc]     = CurrObjType
-            self.AllQuaternions[CurrObjName_lc]     = CurrObjBBox.Quaternion
-            # Add Object to Dictionary After Converting to a List Data Container
-            self.AllBoundingBoxes[CurrObjName_lc]   = CurrObjBBox.BoundingBox.tolist()
-            self.AllFrontFaces[CurrObjName_lc]      = CurrObjBBox.FrontFace.tolist()
-            TempArray                               = CurrObjBBox.Center.tolist() # To Remove 2D Array from a.sum() Result
-            self.AllCenters[CurrObjName_lc]         = TempArray[0]
-
-            # Add Entries to Lists
-            self.AllObjectsInScene.append(CurrObjName_lc)
-
-    def get_userType(self):
-        return self.UserType
-
-    def get_sceneName(self):
-    	return self.SceneName
-
-    def get_objectTypes(self):
-        return self.AllObjectTypes
-
-    def get_objectsInScene(self):
-        return self.AllObjectsInScene
-
-    def get_bboxVertices(self):
-        return self.AllBoundingBoxes
-
-    def get_quaternions(self):
-        return self.AllQuaternions
-
-    def get_bboxCenters(self):
-        return self.AllCenters
-
-    def get_splitSceneName(self):
-        return self.SplitSceneName
-
-    def get_bboxFrontFaceVertices(self):
-        return self.AllFrontFaces
 # -------------------------------------------------------------------------------------
 class Usage(Exception):
     def __init__(self, msg):
@@ -345,84 +94,99 @@ if __name__ == "__main__":
             raise Exception('TSA::Wrong required number of data-sets!')
         if TrainPercent < 1 or TrainPercent > 100:
             raise Exception('TSA::Wrong percentage for training data!')
-
         # Open Data File and Load All Data
         JsonInFileHndl   = open(JsonFileName)
         Scenes           = json.load(JsonInFileHndl)
         NumOfScenes      = len(Scenes)
 
-        # Initialise Training and Test Data 
-        TrainData   = list()
-        TestData    = list()
-        Indxs       = list()
+        # Make Data Output Directory
+        try:
+            os.makedirs('./data-tuples')
+        except OSError:
+            pass
 
-        # Ascertain Number of Scenes According to Percentage
-        NumOfTrainScenes   = int(round(NumOfScenes*TrainPercent/100))
-        print NumOfTrainScenes
-        print "Test Scenes = %d" % (NumOfScenes - NumOfTrainScenes)
+        for d in xrange(0, NumOfDataSets):
+            # Initialise Training and Test Data 
+            TrainData   = list()
+            TestData    = list()
+            Indxs       = list()
 
-        # Find Indices For Selecting the Training Set, Test Set
-        AllSceneIndxs   = xrange(0, NumOfScenes)
-        TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
-        TrainIndxs      = [2,4,6,8,10,12,14,16,18,20, 33, 45,51, 5, 7]
-        SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
-        TestIndxs       = list(SetDiff)
+            # Ascertain Number of Scenes According to Percentage
+            NumOfTrainScenes   = int(round(NumOfScenes*TrainPercent/100))
+            # print NumOfTrainScenes
+            # print "Test Scenes = %d" % (NumOfScenes - NumOfTrainScenes)
 
-        print TrainIndxs
-        print TestIndxs
+            # Find Indices For Selecting the Training Set, Test Set
+            AllSceneIndxs   = xrange(0, NumOfScenes)
+            TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
+            SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
+            TestIndxs       = list(SetDiff)
 
-        # Select Those List Entries Corresponding to Indices
-        ScenesNP    = NP.array(Scenes)   # Convert to numpy array
-        TrainData   = list(ScenesNP[TrainIndxs])
-        TestData    = list(ScenesNP[TestIndxs])
+            print TrainIndxs
+            print TestIndxs
 
-        # Output Data In Files
-        TrainFileName     = "TrainData.json"
-        TestFileName      = "TestData.json"
-        EncTestFileName   = "TestData_Blind.json"
-        with open(TrainFileName,'w') as out_file:
-             out_file.write(json.dumps(TrainData, out_file, indent=2))
+            # Select Those List Entries Corresponding to Indices
+            ScenesNP    = NP.array(Scenes)   # Convert to numpy array
+            TrainData   = list(ScenesNP[TrainIndxs])
+            TestData    = list(ScenesNP[TestIndxs])
 
-        with open(TestFileName,'w') as out_file:
-             out_file.write(json.dumps(TestData, out_file, indent=2))
+            # Output Data In Files
+            TrainFileName     = "./data-tuples/TrainData_" + str(d) + ".json"
+            TestFileName      = "./data-tuples/TestData_"  + str(d) + ".json"
+            EncTestFileName   = "./data-tuples/TestDataEnc_"  + str(d) + ".json"
+            with open(TrainFileName,'w') as out_file:
+                 out_file.write(json.dumps(TrainData, out_file, indent=2))
+
+            with open(TestFileName,'w') as out_file:
+                 out_file.write(json.dumps(TestData, out_file, indent=2))
 
 
-        # Actual Encryption
-        EncTestData   = list()
-        for s in range(0,len(TestData)):
-            # Encrypt Test Data
-            ObjectTypeList   = TestData[s]["type"]
-            NumOfObjects     = len(ObjectTypeList)
-            # Make Encrypt and Decrypt Maps
-            EncryptKey   = dict()
-            DecryptKey   = dict()
-            count        = 0;
-            for o, t in ObjectTypeList.iteritems():
-                CurrEncName               = 'Obj'+str(count)
-                EncryptKey[o]             = CurrEncName
-                DecryptKey[CurrEncName]   = str(t)
-                count                    += 1
-            # Remove Unneeded Fields
-            CurrDict   = TestData[s]
-            CurrDict.pop("table-type", None)
-            CurrDict.pop("user-type", None)
-            CurrDict.pop("date", None)
-            CurrDict.pop("objects", None)
-            # Rename Keys According to Encryption Map
-            for k in CurrDict.keys():
-                if k != "scene_id":
-                    for o in CurrDict[k].keys():
-                        ObjectType   = ObjectTypeList[o]
-                        if ObjectType in Set1Objects:
-                            OldKey                = o
-                            NewKey                = EncryptKey[o]
-                            CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
-                        else:
-                            CurrDict[k].pop(o, None)
-            # Store Modified Dictionary
-            EncTestData.append(CurrDict)
-        with open(EncTestFileName,'w') as out_file:
-             out_file.write(json.dumps(EncTestData, out_file, indent=2))
+            # Actual Encryption
+            EncTestData   = list()
+            # Put a Time Stamp 
+            EncTestData.append({
+                                'creation-time': str(datetime.datetime.now()),
+                                'data-set-type': 'Random_Folding',
+                                'train-percent': TrainPercent
+                                })
+            for s in range(0,len(TestData)):
+                # Encrypt Test Data
+                ObjectTypeList   = TestData[s]["type"]
+                NumOfObjects     = len(ObjectTypeList)
+                # Make Encrypt and Decrypt Maps
+                EncryptKey   = dict()
+                DecryptKey   = dict()
+                count        = 0;
+                for o, t in ObjectTypeList.iteritems():
+                    CurrEncName               = 'Obj'+str(count)
+                    EncryptKey[o]             = CurrEncName
+                    DecryptKey[CurrEncName]   = str(t)
+                    count                    += 1
+                # Remove Unneeded Fields
+                CurrDict   = TestData[s]
+                CurrDict.pop("table-type", None)
+                CurrDict.pop("user-type", None)
+                CurrDict.pop("date", None)
+                CurrDict.pop("objects", None)
+                # CurrDict.pop("type", None)
+                print CurrDict.keys()
+                # Rename Keys According to Encryption Map
+                for k in CurrDict.keys():
+                    if k != "scene_id":
+                        for o in CurrDict[k].keys():
+                            ObjectType   = ObjectTypeList[o]
+                            if ObjectType in Set1Objects:
+                                OldKey                = o
+                                NewKey                = EncryptKey[o]
+                                CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
+                            else:
+                                CurrDict[k].pop(o, None)
+                # Store Modified Dictionary
+                EncTestData.append(CurrDict)
+            with open(EncTestFileName,'w') as out_file:
+                 out_file.write(json.dumps(EncTestData, out_file, indent=2))
+
+            print 'Completed Test Data = %d' % d
         # Close Openned Files
         JsonInFileHndl.close()
     except Usage as err:
