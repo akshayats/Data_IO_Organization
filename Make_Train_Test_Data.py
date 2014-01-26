@@ -29,6 +29,7 @@ import numpy as NP
 import datetime
 import random
 import os
+import copy
 
 
 from pprint import pprint
@@ -84,7 +85,6 @@ if __name__ == "__main__":
         if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
             raise Usage(help_msg())
 
-
         JsonFileName    = args[0]
         NumOfDataSets   = int(args[1])
         TrainPercent    = int(args[2])
@@ -106,6 +106,9 @@ if __name__ == "__main__":
             pass
 
         for d in xrange(0, NumOfDataSets):
+            print "========================================================================="
+            print "                       STARTING DATA-TUPLE-SET # %d                    " % d
+            print "========================================================================="
             # Initialise Training and Test Data 
             TrainData   = list()
             TestData    = list()
@@ -121,8 +124,9 @@ if __name__ == "__main__":
             TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
             SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
             TestIndxs       = list(SetDiff)
-
+            print "Selected scenes for Train Data:"
             print TrainIndxs
+            print "Selected scenes for Test Data:"
             print TestIndxs
 
             # Select Those List Entries Corresponding to Indices
@@ -130,65 +134,140 @@ if __name__ == "__main__":
             TrainData   = list(ScenesNP[TrainIndxs])
             TestData    = list(ScenesNP[TestIndxs])
 
-            # Output Data In Files
+            # Output Raw Data In Files
             TrainFileName     = "./data-tuples/TrainData_" + str(d) + ".json"
             TestFileName      = "./data-tuples/TestData_"  + str(d) + ".json"
             EncTestFileName   = "./data-tuples/TestDataEnc_"  + str(d) + ".json"
+            DecKeyFileName    = "./data-tuples/TestDataDec_"  + str(d) + ".json"
             with open(TrainFileName,'w') as out_file:
                  out_file.write(json.dumps(TrainData, out_file, indent=2))
 
             with open(TestFileName,'w') as out_file:
                  out_file.write(json.dumps(TestData, out_file, indent=2))
 
-
-            # Actual Encryption
-            EncTestData   = list()
+            # Encryption of Test Data
+            # -------------------------
+            # Initialize
+            EncTestData      = list()
+            DecryptKeyData   = list()
             # Put a Time Stamp 
             EncTestData.append({
                                 'creation-time': str(datetime.datetime.now()),
                                 'data-set-type': 'Random_Folding',
                                 'train-percent': TrainPercent
                                 })
-            for s in range(0,len(TestData)):
-                # Encrypt Test Data
-                ObjectTypeList   = TestData[s]["type"]
-                NumOfObjects     = len(ObjectTypeList)
+            for s in xrange(0, len(TestData)):
+                print "------------------------------------------------------"
+                print "%d -- Processing scene : " %s +TestData[s]["scene_id"]
+                print "------------------------------------------------------"
+                # Encryption Process
+                # -------------------
+                # Get Object Types
+                sObjectTypeList   = TestData[s]["type"]
+                sNumOfObjects      = len(sObjectTypeList)
+                print sObjectTypeList
+                print sNumOfObjects
                 # Make Encrypt and Decrypt Maps
-                EncryptKey   = dict()
-                DecryptKey   = dict()
-                count        = 0;
-                for o, t in ObjectTypeList.iteritems():
-                    CurrEncName               = 'Obj'+str(count)
-                    EncryptKey[o]             = CurrEncName
-                    DecryptKey[CurrEncName]   = str(t)
-                    count                    += 1
+                sEncryptKey   = dict()
+                sDecryptKey   = dict()
+                count         = 0
+                for o,t in sObjectTypeList.iteritems():
+                    CurrObjName                = 'Obj' + str(count)
+                    sEncryptKey[o]             = CurrObjName
+                    sDecryptKey[CurrObjName]   = str(t)
+                    count                     += 1
+                print "Encrypt Key is:"
+                print sEncryptKey
+                print "Decrypt Key is:"
+                print sDecryptKey
+                # Initialize Current Scene Dictionary for Encryption
+                sCurrDict   = copy.deepcopy(TestData[s])
                 # Remove Unneeded Fields
-                CurrDict   = TestData[s]
-                CurrDict.pop("table-type", None)
-                CurrDict.pop("user-type", None)
-                CurrDict.pop("date", None)
-                CurrDict.pop("objects", None)
-                # CurrDict.pop("type", None)
-                print CurrDict.keys()
+                sCurrDict.pop("table-type", None)
+                sCurrDict.pop("user-type", None)
+                sCurrDict.pop("date", None)
+                sCurrDict.pop("objects", None)
+                sCurrDict.pop("type", None)
+
                 # Rename Keys According to Encryption Map
-                for k in CurrDict.keys():
+                for k in sCurrDict.keys():
                     if k != "scene_id":
-                        for o in CurrDict[k].keys():
-                            ObjectType   = ObjectTypeList[o]
+                        for obj in sCurrDict[k].keys():
+                            ObjectType   = sObjectTypeList[obj]
                             if ObjectType in Set1Objects:
-                                OldKey                = o
-                                NewKey                = EncryptKey[o]
-                                CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
+                                OldKey                 = obj
+                                NewKey                 = sEncryptKey[obj]
+                                sCurrDict[k][NewKey]   = sCurrDict[k].pop(OldKey)
                             else:
-                                CurrDict[k].pop(o, None)
-                # Store Modified Dictionary
-                EncTestData.append(CurrDict)
+                                sCurrDict[k].pop(obj, None)
+
+                # Store Modified Dictionary in Encrypted Test Data Dictionary
+                EncTestData.append(sCurrDict)
+
+                # Store Scene Name To Decryption Data Structure
+                DecryptKeyData.append({
+                                        "scene_id":sCurrDict["scene_id"],
+                                        "decrypt-key":sDecryptKey
+                                    })
+
+                print "++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+                print "                                                      "
+
+            # Write Out Encrypted Data to File
             with open(EncTestFileName,'w') as out_file:
                  out_file.write(json.dumps(EncTestData, out_file, indent=2))
-
-            print 'Completed Test Data = %d' % d
+            # Write Out Decryption Key to File
+            with open(DecKeyFileName,'w') as out_file:
+                 out_file.write(json.dumps(DecryptKeyData , out_file, indent=2))
+            # Dialogue Output For Completion
+            print 'Completed Test Data = %d' % (d+1)
+            print "============================================================"
         # Close Openned Files
         JsonInFileHndl.close()
     except Usage as err:
         print(err.msg)
         print("for help use --help")
+
+
+
+        # for s in range(0,len(TestData)):
+        #         print TestData[s]["scene_id"]
+        #         # Encrypt Test Data
+        #         ObjectTypeList   = TestData[s]["type"]
+        #         NumOfObjects     = len(ObjectTypeList)
+        #         # Make Encrypt and Decrypt Maps
+        #         EncryptKey   = dict()
+        #         DecryptKey   = dict()
+        #         count        = 0;
+        #         for o, t in ObjectTypeList.iteritems():
+        #             CurrEncName               = 'Obj'+str(count)
+        #             EncryptKey[o]             = CurrEncName
+        #             DecryptKey[CurrEncName]   = str(t)
+        #             count                    += 1
+        #         # Remove Unneeded Fields
+        #         CurrDict   = TestData[s]
+        #         CurrDict.pop("table-type", None)
+        #         CurrDict.pop("user-type", None)
+        #         CurrDict.pop("date", None)
+        #         CurrDict.pop("objects", None)
+        #         # CurrDict.pop("type", None)
+        #         print CurrDict["type"]
+        #         # Rename Keys According to Encryption Map
+        #         for k in CurrDict.keys():
+        #             if k != "scene_id":
+        #                 for obj in CurrDict[k].keys():
+        #                     ObjectType   = ObjectTypeList[obj]
+        #                     if ObjectType in Set1Objects:
+        #                         OldKey                = obj
+        #                         NewKey                = EncryptKey[obj]
+        #                         CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
+        #                     else:
+        #                         CurrDict[k].pop(obj, None)
+        #         for k in CurrDict.keys():
+        #             print k
+        #         # Store Modified Dictionary
+        #         EncTestData.append(CurrDict)
+        #     with open(EncTestFileName,'w') as out_file:
+        #          out_file.write(json.dumps(EncTestData, out_file, indent=2))
+
+        #     print 'Completed Test Data = %d' % (d+1)
