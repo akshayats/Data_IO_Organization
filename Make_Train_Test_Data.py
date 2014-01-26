@@ -1,30 +1,26 @@
 #!/usr/bin/env python3.3
 """
-FileName    : make_json_from_xmls.py
-Usage       : make_json_from_xmls.py [-h] <input_FOLDER> <output_file>
-              
-              input_FOLDER contains all the XML files that need to be considered for conversion
-              output_file is the name of the output JSON file
-              example:
-                $ python make_json_from_xmls.py /home/path/to/XmlFolder /home/ExampleJsonFile.json 
+FileName    : Make_Train_Test_Data.py
+Usage       : Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
 
-Description : Script written to read in many filename.xml files contained in a single foleder. The 
-			  object data contained in all the XML files are collected and reformatted. The 
-			  reformatted data is then collectively written into one JSON file.
+              For Example:
+                $ python Make_Train_Test_Data.py python Make_Train_Test_Data.py ExampleJsonFile.json 10 90 
+              ExampleJsonFile.json -    contains all the data scenes from which (train.json, test.json)
+                                        are randomly folded
+              10                    -   10 data tuple instances need to be generated
+              90                    -   in each data tuple 90 % of entire data in ExampleJsonFile.json is training data 
+                                        and 10% of entire data in ExampleJsonFile.json is test data (both randomly picked)
+                
+
+Description :   Script written to read in a data file containing many table top scenes and then fold them 
+                randomly to obtain (train, test) data tuples.
+
+NOTE:           There is a provision to consider only for Set1Objects or Set1Objects+Set2Objects
 """
 
-import errno
 import getopt
 import json
 import sys
-from os import listdir
-from os.path import isfile, join
-import os.path, time
-import xml.etree.ElementTree as ET
-import warnings
-import math as M
-
-
 import numpy as NP
 import datetime
 import random
@@ -70,7 +66,7 @@ output_file converted scenes
 -h, --help for seeing this msg
 """
 
-
+# MAIN
 
 if __name__ == "__main__":
     argv = None
@@ -84,7 +80,10 @@ if __name__ == "__main__":
 
         if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
             raise Usage(help_msg())
-
+        #############################
+        # Set This Flag to 1 to Consider only Set1Objects
+        SET1OBJFLAG     = 1
+        #############################
         JsonFileName    = args[0]
         NumOfDataSets   = int(args[1])
         TrainPercent    = int(args[2])
@@ -135,10 +134,10 @@ if __name__ == "__main__":
             TestData    = list(ScenesNP[TestIndxs])
 
             # Output Raw Data In Files
-            TrainFileName     = "./data-tuples/TrainData_" + str(d) + ".json"
-            TestFileName      = "./data-tuples/TestData_"  + str(d) + ".json"
-            EncTestFileName   = "./data-tuples/TestDataEnc_"  + str(d) + ".json"
-            DecKeyFileName    = "./data-tuples/TestDataDec_"  + str(d) + ".json"
+            TrainFileName     = "./data-tuples/TrainData_" + str(TrainPercent) + "p_" + str(d) + ".json"
+            TestFileName      = "./data-tuples/TestData_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+            EncTestFileName   = "./data-tuples/TestDataEnc_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+            DecKeyFileName    = "./data-tuples/TestDataDec_"  + str(TrainPercent) + "p_" + str(d) + ".json"
             with open(TrainFileName,'w') as out_file:
                  out_file.write(json.dumps(TrainData, out_file, indent=2))
 
@@ -227,47 +226,3 @@ if __name__ == "__main__":
     except Usage as err:
         print(err.msg)
         print("for help use --help")
-
-
-
-        # for s in range(0,len(TestData)):
-        #         print TestData[s]["scene_id"]
-        #         # Encrypt Test Data
-        #         ObjectTypeList   = TestData[s]["type"]
-        #         NumOfObjects     = len(ObjectTypeList)
-        #         # Make Encrypt and Decrypt Maps
-        #         EncryptKey   = dict()
-        #         DecryptKey   = dict()
-        #         count        = 0;
-        #         for o, t in ObjectTypeList.iteritems():
-        #             CurrEncName               = 'Obj'+str(count)
-        #             EncryptKey[o]             = CurrEncName
-        #             DecryptKey[CurrEncName]   = str(t)
-        #             count                    += 1
-        #         # Remove Unneeded Fields
-        #         CurrDict   = TestData[s]
-        #         CurrDict.pop("table-type", None)
-        #         CurrDict.pop("user-type", None)
-        #         CurrDict.pop("date", None)
-        #         CurrDict.pop("objects", None)
-        #         # CurrDict.pop("type", None)
-        #         print CurrDict["type"]
-        #         # Rename Keys According to Encryption Map
-        #         for k in CurrDict.keys():
-        #             if k != "scene_id":
-        #                 for obj in CurrDict[k].keys():
-        #                     ObjectType   = ObjectTypeList[obj]
-        #                     if ObjectType in Set1Objects:
-        #                         OldKey                = obj
-        #                         NewKey                = EncryptKey[obj]
-        #                         CurrDict[k][NewKey]   = CurrDict[k].pop(OldKey)
-        #                     else:
-        #                         CurrDict[k].pop(obj, None)
-        #         for k in CurrDict.keys():
-        #             print k
-        #         # Store Modified Dictionary
-        #         EncTestData.append(CurrDict)
-        #     with open(EncTestFileName,'w') as out_file:
-        #          out_file.write(json.dumps(EncTestData, out_file, indent=2))
-
-        #     print 'Completed Test Data = %d' % (d+1)
