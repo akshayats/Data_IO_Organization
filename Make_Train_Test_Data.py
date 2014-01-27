@@ -15,7 +15,6 @@ Usage       : Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> 
 Description :   Script written to read in a data file containing many table top scenes and then fold them 
                 randomly to obtain (train, test) data tuples.
 
-NOTE:           There is a provision to consider only for Set1Objects or Set1Objects+Set2Objects
 """
 
 import getopt
@@ -26,9 +25,6 @@ import datetime
 import random
 import os
 import copy
-
-
-from pprint import pprint
 
 # DEFINE
 def allDefinedLists():
@@ -58,7 +54,7 @@ class Usage(Exception):
 
 def help_msg():
     return """
-Usage: scene_converter.py [-h] <input_file> <output_file>
+Usage: Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
 
 input_file scenes to be converted
 output_file converted scenes
@@ -80,10 +76,7 @@ if __name__ == "__main__":
 
         if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
             raise Usage(help_msg())
-        #############################
-        # Set This Flag to 1 to Consider only Set1Objects
-        SET1OBJFLAG     = 1
-        #############################
+
         JsonFileName    = args[0]
         NumOfDataSets   = int(args[1])
         TrainPercent    = int(args[2])
@@ -123,6 +116,7 @@ if __name__ == "__main__":
             TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
             SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
             TestIndxs       = list(SetDiff)
+            # Dialogue
             print "Selected scenes for Train Data:"
             print TrainIndxs
             print "Selected scenes for Test Data:"
@@ -138,6 +132,7 @@ if __name__ == "__main__":
             TestFileName      = "./data-tuples/TestData_"  + str(TrainPercent) + "p_" + str(d) + ".json"
             EncTestFileName   = "./data-tuples/TestDataEnc_"  + str(TrainPercent) + "p_" + str(d) + ".json"
             DecKeyFileName    = "./data-tuples/TestDataDec_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+
             with open(TrainFileName,'w') as out_file:
                  out_file.write(json.dumps(TrainData, out_file, indent=2))
 
@@ -156,14 +151,16 @@ if __name__ == "__main__":
                                 'train-percent': TrainPercent
                                 })
             for s in xrange(0, len(TestData)):
+                # Dialogue
                 print "------------------------------------------------------"
                 print "%d -- Processing scene : " %s +TestData[s]["scene_id"]
                 print "------------------------------------------------------"
                 # Encryption Process
                 # -------------------
                 # Get Object Types
-                sObjectTypeList   = TestData[s]["type"]
+                sObjectTypeList    = TestData[s]["type"]
                 sNumOfObjects      = len(sObjectTypeList)
+                # Dialogue
                 print sObjectTypeList
                 print sNumOfObjects
                 # Make Encrypt and Decrypt Maps
@@ -175,6 +172,7 @@ if __name__ == "__main__":
                     sEncryptKey[o]             = CurrObjName
                     sDecryptKey[CurrObjName]   = str(t)
                     count                     += 1
+                # Dialogue
                 print "Encrypt Key is:"
                 print sEncryptKey
                 print "Decrypt Key is:"
@@ -197,8 +195,8 @@ if __name__ == "__main__":
                                 OldKey                 = obj
                                 NewKey                 = sEncryptKey[obj]
                                 sCurrDict[k][NewKey]   = sCurrDict[k].pop(OldKey)
-                            else:
-                                sCurrDict[k].pop(obj, None)
+                            # else:
+                            #     sCurrDict[k].pop(obj, None)
 
                 # Store Modified Dictionary in Encrypted Test Data Dictionary
                 EncTestData.append(sCurrDict)
@@ -218,7 +216,7 @@ if __name__ == "__main__":
             # Write Out Decryption Key to File
             with open(DecKeyFileName,'w') as out_file:
                  out_file.write(json.dumps(DecryptKeyData , out_file, indent=2))
-            # Dialogue Output For Completion
+            # Dialogue
             print 'Completed Test Data = %d' % (d+1)
             print "============================================================"
         # Close Openned Files

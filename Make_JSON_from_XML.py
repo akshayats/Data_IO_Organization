@@ -1,12 +1,12 @@
 #!/usr/bin/env python3.3
 """
-FileName    : make_json_from_xmls.py
-Usage       : make_json_from_xmls.py [-h] <input_FOLDER> <output_file>
+FileName    : Make_JSON_from_XML.py
+Usage       : Make_JSON_from_XML.py [-h] <input_FOLDER> <output_file>
               
               input_FOLDER contains all the XML files that need to be considered for conversion
               output_file is the name of the output JSON file
               example:
-                $ python make_json_from_xmls.py /home/path/to/XmlFolder /home/ExampleJsonFile.json 
+                $ python Make_JSON_from_XML.py /home/path/to/XmlFolder /home/ExampleJsonFile.json 
 
 Description : Script written to read in many filename.xml files contained in a single foleder. The 
 			  object data contained in all the XML files are collected and reformatted. The 
@@ -288,7 +288,7 @@ class Usage(Exception):
 
 def help_msg():
     return """
-Usage: scene_converter.py [-h] <input_file> <output_file>
+Usage: Make_JSON_from_XML.py [-h] <input_FOLDER> <output_file>
 
 input_file scenes to be converted
 output_file converted scenes
