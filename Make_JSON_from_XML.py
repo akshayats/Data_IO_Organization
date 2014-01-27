@@ -220,6 +220,7 @@ class XmlData():
             CurrObjType         = CurrObjName_split[0]
             # Check If New Type Of Object - Give Warnings
             if not CurrObjType in AllPossibleObjectTypes:
+                print FullFileName + ":   "
                 print "TSA: New object type found! -   " + CurrObjType
 
             # ACCESSING OBJECT DIMENSION DETAILS

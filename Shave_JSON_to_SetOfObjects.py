@@ -80,33 +80,30 @@ if __name__ == "__main__":
 
         # Shaving Functionality to Retain Only Set1Objects, if Flag is Set
         JsonData_Mod   = list()
-    	for s in xrange(0, NumOfScenes):
-        	sCurrDict   = copy.deepcopy(Scenes[s])
-        	
-        	# Remove List of Object Instance Names
-        	sCurrDict.pop("objects", None)
-        	# Initialize New List
-        	sObjectNameList    = list()
-        	
-        	# Get Object Types
-        	sObjectTypeList    = Scenes[s]["type"]
-        	for k in sCurrDict.keys():
-        		if k != "scene_id" and k != "table-type" and k != "user-type" and k != "date" and k != "objects":
-        			print k
-        			print sCurrDict[k].keys()
-        			print "-------------------------------"
-        			for obj in sCurrDict[k].keys():
-        				objType   = sObjectTypeList[obj]
-        				if objType not in Set1Objects:
-        					sCurrDict[k].pop(obj, None)
-        				else:
-        					if obj not in sObjectNameList:
-        						sObjectNameList.append(obj)
-        	
-        	# Include Modified Object Name List
-        	sCurrDict["objects"]   = sObjectNameList
-        	# Append Modified Scene-Dictionary to List of Scenes
-        	JsonData_Mod.append(sCurrDict)
+        for s in xrange(0, NumOfScenes):
+            sCurrDict   = copy.deepcopy(Scenes[s])
+
+            # Remove List of Object Instance Names
+            sCurrDict.pop("objects", None)
+            # Initialize New List
+            sObjectNameList    = list()
+
+            # Get Object Types
+            sObjectTypeList    = Scenes[s]["type"]
+            for k in sCurrDict.keys():
+                if k != "scene_id" and k != "table-type" and k != "user-type" and k != "date" and k != "objects":
+                    for obj in sCurrDict[k].keys():
+                        objType   = sObjectTypeList[obj]
+                        if objType not in Set1Objects:
+                            sCurrDict[k].pop(obj, None)
+                        else:
+                            if obj not in sObjectNameList:
+                                sObjectNameList.append(obj)
+            # Include Modified Object Name List
+            sCurrDict["objects"]   = sObjectNameList
+            # Append Modified Scene-Dictionary to List of Scenes
+            JsonData_Mod.append(sCurrDict)
+            print "Completed scene %d / %d" % ((s+1), NumOfScenes)
 
         # Save JSON Data Structure as JSON File 
         with open(OutJsonFileName,'w') as out_file:
