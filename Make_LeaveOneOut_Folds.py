@@ -1,10 +1,10 @@
 #!/usr/bin/env python3.3
 """
 FileName    : Make_LeaveOneOut_Folds.py
-Usage       : Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
+Usage       : Make_LeaveOneOut_Folds.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
 
               For Example:
-                $ python Make_Train_Test_Data.py python Make_Train_Test_Data.py ExampleJsonFile.json 10 90 
+                $ python Make_LeaveOneOut_Folds.py ExampleJsonFile.json 10 90 
               ExampleJsonFile.json -    contains all the data scenes from which (train.json, test.json)
                                         are randomly folded
               10                    -   10 data tuple instances need to be generated
@@ -13,7 +13,7 @@ Usage       : Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> 
                 
 
 Description :   Script written to read in a data file containing many table top scenes and then fold them 
-                randomly to obtain (train, test) data tuples.
+                randomly pick correct number of people to leave out (from TRain Data) to obtain (train, test) data tuples.
 
 """
 
@@ -66,7 +66,8 @@ def allDefinedLists():
                            'Rares',
                            'Rasmus',
                            'Yasemin',
-                           'Yuquan'
+                           'Yuquan',
+                           'Hedvig'
                          ]
 
 allDefinedLists()
@@ -78,7 +79,7 @@ class Usage(Exception):
 
 def help_msg():
     return """
-Usage: Make_Train_Test_Data.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
+Usage: Make_LeaveOneOut_Folds.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
 
 input_file scenes to be converted
 output_file converted scenes
@@ -189,14 +190,14 @@ if __name__ == "__main__":
             TrainData.append({
                                 'creation-time': CurrTime,
                                 'data-set-type': 'Leave-One-Out Folding',
-                                'train_percent': DelivrdTrainPercent,
+                                'train-percent': DelivrdTrainPercent,
                                 'people-left-out': TestPeople
                 })
 
             TestData.append({
                                 'creation-time': CurrTime,
                                 'data-set-type': 'Leave-One-Out Folding',
-                                'train_percent': DelivrdTrainPercent,
+                                'train-percent': DelivrdTrainPercent,
                                 'people-left-out': TestPeople
                 })
             # Write Out Raw Train and Test Data Files
@@ -275,7 +276,7 @@ if __name__ == "__main__":
             EncTestData.append({
                                 'creation-time': CurrTime,
                                 'data-set-type': 'Leave-One-Out Folding',
-                                'train_percent': DelivrdTrainPercent,
+                                'train-percent': DelivrdTrainPercent,
                                 'people-left-out': TestPeople
                                 })
 
@@ -283,7 +284,7 @@ if __name__ == "__main__":
             DecryptKeyData.append({
                                 'creation-time': CurrTime,
                                 'data-set-type': 'Leave-One-Out Folding',
-                                'train_percent': DelivrdTrainPercent,
+                                'train-percent': DelivrdTrainPercent,
                                 'people-left-out': TestPeople
                                 })
 

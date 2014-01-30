@@ -339,7 +339,8 @@ if __name__ == "__main__":
         # Loop Over All Target XML Files
         WithFolderName   = list()
         for CurrXmlFile in XmlFileNames:
-        	# Initialize the Dictionaries
+            print CurrXmlFile
+            # Initialize the Dictionaries
             pos    = dict()
             ori    = dict()
             bbox   = dict()
