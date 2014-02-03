@@ -37,4 +37,8 @@ nosetests.xml
 
 # --------------CUSTOM---------------
 data-tuples
+data-tuples-loo
+leave-one-out-foldings
+random-foldings
+single-table-foldings
 *~

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3.3
 """
 FileName    : Make_Random_Folds.py
-Usage       : Make_Random_Folds.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
+Usage       : Make_Random_Folds.py [-h] <input_FILE> <number of folding-instances>
 
               For Example:
-                $ python Make_Random_Folds.py ExampleJsonFile.json 10 90 
+                $ python Make_Random_Folds.py ExampleJsonFile.json 10
               ExampleJsonFile.json -    contains all the data scenes from which (train.json, test.json)
                                         are randomly folded
-              10                    -   10 data tuple instances need to be generated
-              90                    -   in each data tuple 90 % of entire data in ExampleJsonFile.json is training data 
-                                        and 10% of entire data in ExampleJsonFile.json is test data (both randomly picked)
+              10                    -   10 folding instances need to be generated
+
+              In each data tuple 60 % of entire data in ExampleJsonFile.json is training data and 40% of
+              entire data in ExampleJsonFile.json is test data (both randomly picked). For the training
+              data, fractions of it are randomly included to test generalizing capabilities of techniques.
                 
 
 Description :   Script written to read in a data file containing many table top scenes and then fold them 
@@ -26,27 +28,6 @@ import random
 import os
 import copy
 
-# DEFINE
-def allDefinedLists():
-        global Set1Objects
-        Set1Objects              = [
-                                    'Mouse',
-                                    'Keyboard',
-                                    'Monitor',
-                                    'Papers',
-                                    'Book',
-                                    'Notebook',
-                                    'Laptop',
-                                    'Mobile',
-                                    'Mug',
-                                    'Glass',
-                                    'Flask',
-                                    'Bottle',
-                                    'Jug'
-                                   ]
-
-allDefinedLists()
-
 # -------------------------------------------------------------------------------------
 class Usage(Exception):
     def __init__(self, msg):
@@ -54,10 +35,11 @@ class Usage(Exception):
 
 def help_msg():
     return """
-Usage: Make_Random_Folds.py [-h] <input_FILE> <number of data-tuples> <training data fold percent>
+Usage: Make_Random_Folds.py [-h] <input_FILE> <number of folding-instances>
 
-input_file scenes to be converted
-output_file converted scenes
+input_FILE: scenes to be folded from
+number-of-folding-instances: Number of folding instances to be created. The different ways instances
+of generating the 60-40 split by random choosing.
 
 -h, --help for seeing this msg
 """
@@ -74,19 +56,18 @@ if __name__ == "__main__":
         except getopt.error as msg:
             raise Usage(msg)
 
-        if ('-h','') in opts or ('--help', '') in opts or len(args) is not 3:
+        if ('-h','') in opts or ('--help', '') in opts or len(args) is not 2:
             raise Usage(help_msg())
 
-        JsonFileName     = args[0]
-        NumOfDataSets    = int(args[1])
-        TrainPercent     = int(args[2])
-        DATA_THROW_DIR   = './data-tuples'
+        JsonFileName          = args[0]
+        NumOfFoldInstances    = int(args[1])
+        DATA_THROW_DIR        = './random-folds'
+        TRAIN_PERCENT         = 60
+        TEST_PERCENT          = 100 - TRAIN_PERCENT
 
         # Error Handling
-        if NumOfDataSets < 1:
+        if NumOfFoldInstances < 1:
             raise Exception('TSA::Wrong required number of data-sets!')
-        if TrainPercent < 1 or TrainPercent > 100:
-            raise Exception('TSA::Wrong percentage for training data!')
         # Open Data File and Load All Data
         JsonInFileHndl   = open(JsonFileName)
         Scenes           = json.load(JsonInFileHndl)
@@ -94,11 +75,11 @@ if __name__ == "__main__":
 
         # Make Data Output Directory
         try:
-            os.makedirs('./data-tuples')
+            os.makedirs(DATA_THROW_DIR)
         except OSError:
             pass
 
-        for d in xrange(0, NumOfDataSets):
+        for d in xrange(0, NumOfFoldInstances):
             print "========================================================================="
             print "                       STARTING DATA-TUPLE-SET # %d                    " % d
             print "========================================================================="
@@ -108,15 +89,16 @@ if __name__ == "__main__":
             Indxs       = list()
 
             # Ascertain Number of Scenes According to Percentage
-            NumOfTrainScenes   = int(round(NumOfScenes*TrainPercent/100))
-            # print NumOfTrainScenes
-            # print "Test Scenes = %d" % (NumOfScenes - NumOfTrainScenes)
+            NumInTrainSplit   = int(round(NumOfScenes*TRAIN_PERCENT/100))
+            # print NumInTrainSplit
+            # print "Test Scenes = %d" % (NumOfScenes - NumInTrainSplit)
 
             # Find Indices For Selecting the Training Set, Test Set
-            AllSceneIndxs   = xrange(0, NumOfScenes)
-            TrainIndxs      = random.sample(AllSceneIndxs, NumOfTrainScenes)
-            SetDiff         = set(AllSceneIndxs) - set(TrainIndxs)
-            TestIndxs       = list(SetDiff)
+            AllSceneIndxs     = xrange(0, NumOfScenes)
+            TrainIndxs        = random.sample(AllSceneIndxs, NumInTrainSplit)
+            TrainSceneIndxs   = xrange(0, NumInTrainSplit)
+            SetDiff           = set(AllSceneIndxs) - set(TrainIndxs)
+            TestIndxs         = list(SetDiff)
             # Dialogue
             print "Selected scenes for Train Data:"
             print TrainIndxs
@@ -125,41 +107,15 @@ if __name__ == "__main__":
 
             # Select Those List Entries Corresponding to Indices
             ScenesNP    = NP.array(Scenes)   # Convert to numpy array
-            TrainData   = list(ScenesNP[TrainIndxs])
+            TrainPool   = list(ScenesNP[TrainIndxs])
             TestData    = list(ScenesNP[TestIndxs])
-
-            # Output Raw Data In Files
-            TrainFileName     = DATA_THROW_DIR +  "/TrainData_" + str(TrainPercent) + "p_" + str(d) + ".json"
-            TestFileName      = DATA_THROW_DIR +  "/TestData_"  + str(TrainPercent) + "p_" + str(d) + ".json"
-            EncTestFileName   = DATA_THROW_DIR +  "/TestDataEnc_"  + str(TrainPercent) + "p_" + str(d) + ".json"
-            DecKeyFileName    = DATA_THROW_DIR +  "/TestDataDec_"  + str(TrainPercent) + "p_" + str(d) + ".json"
-            # Append Folding Metadata to Data
-            CurrTime   = str(datetime.datetime.now())
-
-            TrainData.append({
-                                'creation-time': CurrTime,
-                                'data-set-type': 'Random Folding',
-                                'train-percent': TrainPercent
-                })
-
-            TestData.append({
-                                'creation-time': CurrTime,
-                                'data-set-type': 'Random Folding',
-                                'train-percent': TrainPercent
-                })
-
-            with open(TrainFileName,'w') as out_file:
-                 out_file.write(json.dumps(TrainData, out_file, indent=2))
-
-            with open(TestFileName,'w') as out_file:
-                 out_file.write(json.dumps(TestData, out_file, indent=2))
 
             # Encryption of Test Data
             # -------------------------
             # Initialize
             EncTestData      = list()
             DecryptKeyData   = list()
-            for s in xrange(0, len(TestData)-1):
+            for s in xrange(0, len(TestData)):
                 # Dialogue
                 print "------------------------------------------------------"
                 print "%d -- Processing scene : " %s +TestData[s]["scene_id"]
@@ -199,13 +155,10 @@ if __name__ == "__main__":
                 for k in sCurrDict.keys():
                     if k != "scene_id":
                         for obj in sCurrDict[k].keys():
-                            ObjectType   = sObjectTypeList[obj]
-                            if ObjectType in Set1Objects:
-                                OldKey                 = obj
-                                NewKey                 = sEncryptKey[obj]
-                                sCurrDict[k][NewKey]   = sCurrDict[k].pop(OldKey)
-                            # else:
-                            #     sCurrDict[k].pop(obj, None)
+                            ObjectType             = sObjectTypeList[obj]
+                            OldKey                 = obj
+                            NewKey                 = sEncryptKey[obj]
+                            sCurrDict[k][NewKey]   = sCurrDict[k].pop(OldKey)
 
                 # Store Modified Dictionary in Encrypted Test Data Dictionary
                 EncTestData.append(sCurrDict)
@@ -215,32 +168,69 @@ if __name__ == "__main__":
                                         "scene_id":sCurrDict["scene_id"],
                                         "decrypt-key":sDecryptKey
                                     })
+            # Make Training Percent [10,20,...,100]% of TRAIN_PERCENT Input Original Data
+            for tp in range(10, 110, 10):
+                TrainPercent   = tp
+                # Output Raw Data In Files
+                TrainFileName     = DATA_THROW_DIR +  "/TrainData_" + str(TrainPercent) + "p_" + str(d) + ".json"
+                TestFileName      = DATA_THROW_DIR +  "/TestData_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+                EncTestFileName   = DATA_THROW_DIR +  "/TestDataEnc_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+                DecKeyFileName    = DATA_THROW_DIR +  "/TestDataDec_"  + str(TrainPercent) + "p_" + str(d) + ".json"
+                # Ascertain Number of Scenes According to Percentage
+                NumOfTrainSamples   = int(round(NumInTrainSplit*tp/100))
+                # Find Indices For Selecting the Training Set
+                TrainIndxs          = random.sample(TrainSceneIndxs, NumOfTrainSamples)
+                # Select Those List Entries Corresponding to Indices
+                TrainScenesNP       = NP.array(TrainPool)   # Convert to numpy array
+                TrainData           = list(TrainScenesNP[TrainIndxs])
 
-                print "++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-                print "                                                      "
+                # Append Folding Metadata to Data
+                # ------------------------------------------------------
+                CurrTime   = str(datetime.datetime.now())
+                TrainData.append({  
+                                    'train-split': TRAIN_PERCENT,
+                                    'creation-time': CurrTime,
+                                    'data-set-type': 'Random Folding',
+                                    'train-percent': TrainPercent
+                                    })
+                TestData.append({
+                                    'train-split': TRAIN_PERCENT,
+                                    'creation-time': CurrTime,
+                                    'data-set-type': 'Random Folding',
+                                    'train-percent': TrainPercent
+                                    })
+                EncTestData.append({
+                                    'train-split': TRAIN_PERCENT,
+                                    'creation-time': CurrTime,
+                                    'data-set-type': 'Random Folding',
+                                    'train-percent': TrainPercent
+                                    })
+                DecryptKeyData.append({
+                                    'train-split': TRAIN_PERCENT,
+                                    'creation-time': CurrTime,
+                                    'data-set-type': 'Random Folding',
+                                    'train-percent': TrainPercent
+                                    })
+                # ------------------------------------------------------
 
-            # Put Data Creation Metadata
-            EncTestData.append({
-                                'creation-time': CurrTime,
-                                'data-set-type': 'Random_Folding',
-                                'train-percent': TrainPercent
-                                })
-
-            # Put Data Creation Metadata
-            DecryptKeyData.append({
-                                'creation-time': CurrTime,
-                                'data-set-type': 'Random_Folding',
-                                'train-percent': TrainPercent
-                                })
-
-            # Write Out Encrypted Data to File
-            with open(EncTestFileName,'w') as out_file:
-                 out_file.write(json.dumps(EncTestData, out_file, indent=2))
-            # Write Out Decryption Key to File
-            with open(DecKeyFileName,'w') as out_file:
-                 out_file.write(json.dumps(DecryptKeyData , out_file, indent=2))
-            # Dialogue
-            print 'Completed Test Data = %d' % (d+1)
+                # Write Into Training Data File
+                with open(TrainFileName,'w') as out_file:
+                     out_file.write(json.dumps(TrainData, out_file, indent=2))
+                # Write Into Test Data File
+                with open(TestFileName,'w') as out_file:
+                     out_file.write(json.dumps(TestData, out_file, indent=2))
+                # Write Out Encrypted Test Data to File
+                with open(EncTestFileName,'w') as out_file:
+                    out_file.write(json.dumps(EncTestData, out_file, indent=2))
+                # Write Out Decryption Key of Test Data to File
+                with open(DecKeyFileName,'w') as out_file:
+                    out_file.write(json.dumps(DecryptKeyData , out_file, indent=2))
+                # Dialogue
+                print "Data Written for Train Percent = %d %%" % tp
+            # Dialogue            
+            print "++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+            print "                                                      "
+            print 'COMPLETED DATA-TUPLE SET = %d' % d
             print "============================================================"
         # Close Openned Files
         JsonInFileHndl.close()

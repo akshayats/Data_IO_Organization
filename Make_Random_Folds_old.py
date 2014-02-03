@@ -94,7 +94,7 @@ if __name__ == "__main__":
 
         # Make Data Output Directory
         try:
-            os.makedirs('./data-tuples')
+            os.makedirs(DATA_THROW_DIR)
         except OSError:
             pass
 

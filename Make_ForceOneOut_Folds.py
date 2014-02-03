@@ -31,6 +31,22 @@ import math
 
 # DEFINE
 def allDefinedLists():
+        global Set1Objects
+        Set1Objects              = [
+                                    'Mouse',
+                                    'Keyboard',
+                                    'Monitor',
+                                    'Papers',
+                                    'Book',
+                                    'Notebook',
+                                    'Laptop',
+                                    'Mobile',
+                                    'Mug',
+                                    'Glass',
+                                    'Flask',
+                                    'Bottle',
+                                    'Jug'
+                                   ]
         global PeopleInData
         PeopleInData    =[
                            'Akshaya',
@@ -55,6 +71,46 @@ def allDefinedLists():
                            'Yuquan',
                            'Hedvig'
                          ]
+        global ClutteredTables
+        ClutteredTables    =[
+                           'Akshaya',
+                           'Carl',
+                           'Hossein',
+                           'Magnus',
+                           'Michele',
+                           'Miro',
+                           'Puren',
+                           'Rasmus',
+                         ]
+        global SystematicTables
+        SystematicTables    =[
+                           'David',
+                           'Florian',
+                           'Francisco',
+                           'Nils',
+                           'Oscar',
+                           'Petter',
+                           'Yasemin',
+                           'Hedvig'
+                         ]
+        global MixedTables1
+        MixedTables1    =[
+                           'Akshaya',
+                           'Ali',
+                           'David',
+                           'Florian',
+                           'Kaiyu',
+                           'Magnus',
+                         ]
+        global MixedTables2
+        MixedTables2    =[
+                           'Marina',
+                           'Rares',
+                           'Rasmus',
+                           'Yasemin',
+                           'Yuquan',
+                         ]
+
 allDefinedLists()
 
 # -------------------------------------------------------------------------------------
